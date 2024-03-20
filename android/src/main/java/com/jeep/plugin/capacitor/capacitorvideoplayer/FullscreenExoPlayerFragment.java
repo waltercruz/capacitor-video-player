@@ -1324,6 +1324,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
                     @Override
                     public void onCastSessionAvailable() {
                       isCastSession = true;
+
                       final Long videoPosition = player.getCurrentPosition();
                       if (pipEnabled) {
                         pipBtn.setVisibility(View.GONE);
@@ -1331,7 +1332,8 @@ public class FullscreenExoPlayerFragment extends Fragment {
                       resizeBtn.setVisibility(View.GONE);
                       player.setPlayWhenReady(false);
                       cast_image.setVisibility(View.VISIBLE);
-                      castPlayer.setMediaItem(mediaItem, videoPosition);
+                      // castPlayer.setMediaItem(mediaItem, videoPosition);
+                      castPlayer.setMediaItem(mediaItem);
                       styledPlayerView.setPlayer(castPlayer);
                       styledPlayerView.setControllerShowTimeoutMs(0);
                       styledPlayerView.setControllerHideOnTouch(false);
