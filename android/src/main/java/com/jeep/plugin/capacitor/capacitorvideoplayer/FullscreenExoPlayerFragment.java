@@ -56,6 +56,8 @@ import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.ext.cast.CastPlayer;
 import com.google.android.exoplayer2.ext.cast.SessionAvailabilityListener;
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource;
+import okhttp3.OkHttpClient;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.MergingMediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
@@ -571,7 +573,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       player.setVolume(curVolume);
     }
     releasePlayer();
-/* 
+/*
     Activity mAct = getActivity();
     int mOrient = mAct.getRequestedOrientation();
     if (mOrient == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
@@ -900,25 +902,26 @@ public class FullscreenExoPlayerFragment extends Fragment {
   private MediaSource buildHttpMediaSource() {
     MediaSource mediaSource = null;
 
-    DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory();
-    httpDataSourceFactory.setUserAgent("jeep-exoplayer-plugin");
-    httpDataSourceFactory.setConnectTimeoutMs(DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS);
-    httpDataSourceFactory.setReadTimeoutMs(1800000);
-    httpDataSourceFactory.setAllowCrossProtocolRedirects(true);
+    // DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory();
+    OkHttpDataSource.Factory httpDataSourceFactory = new OkHttpDataSource.Factory(new OkHttpClient());    
+    // httpDataSourceFactory.setUserAgent("jeep-exoplayer-plugin");
+    // httpDataSourceFactory.setConnectTimeoutMs(DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS);
+    // httpDataSourceFactory.setReadTimeoutMs(1800000);
+    // httpDataSourceFactory.setAllowCrossProtocolRedirects(true);
 
-    // If headers is not null and has data we pass them to the HttpDataSourceFactory
-    if (headers != null && headers.length() > 0) {
-      // We map the headers(JSObject) to a Map<String, String>
-      Map<String, String> headersMap = new HashMap<String, String>();
-      for (int i = 0; i < headers.names().length(); i++) {
-        try {
-          headersMap.put(headers.names().getString(i), headers.get(headers.names().getString(i)).toString());
-        } catch (JSONException e) {
-          e.printStackTrace();
-        }
-      }
-      httpDataSourceFactory.setDefaultRequestProperties(headersMap);
-    }
+    // // If headers is not null and has data we pass them to the HttpDataSourceFactory
+    // if (headers != null && headers.length() > 0) {
+    //   // We map the headers(JSObject) to a Map<String, String>
+    //   Map<String, String> headersMap = new HashMap<String, String>();
+    //   for (int i = 0; i < headers.names().length(); i++) {
+    //     try {
+    //       headersMap.put(headers.names().getString(i), headers.get(headers.names().getString(i)).toString());
+    //     } catch (JSONException e) {
+    //       e.printStackTrace();
+    //     }
+    //   }
+    //   httpDataSourceFactory.setDefaultRequestProperties(headersMap);
+    // }
 
     DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(context, httpDataSourceFactory);
 
