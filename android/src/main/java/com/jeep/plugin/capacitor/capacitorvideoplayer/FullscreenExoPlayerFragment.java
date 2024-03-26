@@ -333,7 +333,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
                 if (player.isPlaying()) {
                   Log.v(TAG, "**** in ExoPlayer.STATE_READY going to notify playerItemPlay ");
                   NotificationCenter.defaultCenter().postNotification("playerItemPlay", info);
-                  resizeBtn.setVisibility(View.VISIBLE);
+                  // resizeBtn.setVisibility(View.VISIBLE);
 
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && pipEnabled) {
                     pipBtn.setVisibility(View.VISIBLE);
@@ -460,14 +460,14 @@ public class FullscreenExoPlayerFragment extends Fragment {
                   }
                 }
               );
-              resizeBtn.setOnClickListener(
-                new View.OnClickListener() {
-                  @Override
-                  public void onClick(View view) {
-                    resizePressed();
-                  }
-                }
-              );
+              // resizeBtn.setOnClickListener(
+              //   new View.OnClickListener() {
+              //     @Override
+              //     public void onClick(View view) {
+              //       resizePressed();
+              //     }
+              //   }
+              // );
             }
           }
         );
@@ -549,15 +549,15 @@ public class FullscreenExoPlayerFragment extends Fragment {
     if (resizeStatus == AspectRatioFrameLayout.RESIZE_MODE_FIT) {
       styledPlayerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
       resizeStatus = AspectRatioFrameLayout.RESIZE_MODE_FILL;
-      resizeBtn.setImageResource(R.drawable.ic_zoom);
+      // resizeBtn.setImageResource(R.drawable.ic_zoom);
     } else if (resizeStatus == AspectRatioFrameLayout.RESIZE_MODE_FILL) {
       styledPlayerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_ZOOM);
       resizeStatus = AspectRatioFrameLayout.RESIZE_MODE_ZOOM;
-      resizeBtn.setImageResource(R.drawable.ic_fit);
+      // resizeBtn.setImageResource(R.drawable.ic_fit);
     } else {
       styledPlayerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
       resizeStatus = AspectRatioFrameLayout.RESIZE_MODE_FIT;
-      resizeBtn.setImageResource(R.drawable.ic_expand);
+      // resizeBtn.setImageResource(R.drawable.ic_expand);
     }
   }
 
@@ -1329,7 +1329,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
                       if (pipEnabled) {
                         pipBtn.setVisibility(View.GONE);
                       }
-                      resizeBtn.setVisibility(View.GONE);
+                      // resizeBtn.setVisibility(View.GONE);
                       player.setPlayWhenReady(false);
                       cast_image.setVisibility(View.VISIBLE);
                       // castPlayer.setMediaItem(mediaItem, videoPosition);
@@ -1348,7 +1348,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
                       if (pipEnabled) {
                         pipBtn.setVisibility(View.VISIBLE);
                       }
-                      resizeBtn.setVisibility(View.VISIBLE);
+                      // resizeBtn.setVisibility(View.VISIBLE);
                       cast_image.setVisibility(View.GONE);
                       styledPlayerView.setPlayer(player);
                       player.setPlayWhenReady(true);
