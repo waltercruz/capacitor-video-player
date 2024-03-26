@@ -921,24 +921,24 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
     // DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory();
     OkHttpDataSource.Factory httpDataSourceFactory = new OkHttpDataSource.Factory(new OkHttpClient());    
-    // httpDataSourceFactory.setUserAgent("jeep-exoplayer-plugin");
+    httpDataSourceFactory.setUserAgent("jeep-exoplayer-plugin");
     // httpDataSourceFactory.setConnectTimeoutMs(DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS);
     // httpDataSourceFactory.setReadTimeoutMs(1800000);
     // httpDataSourceFactory.setAllowCrossProtocolRedirects(true);
 
-    // // If headers is not null and has data we pass them to the HttpDataSourceFactory
-    // if (headers != null && headers.length() > 0) {
-    //   // We map the headers(JSObject) to a Map<String, String>
-    //   Map<String, String> headersMap = new HashMap<String, String>();
-    //   for (int i = 0; i < headers.names().length(); i++) {
-    //     try {
-    //       headersMap.put(headers.names().getString(i), headers.get(headers.names().getString(i)).toString());
-    //     } catch (JSONException e) {
-    //       e.printStackTrace();
-    //     }
-    //   }
-    //   httpDataSourceFactory.setDefaultRequestProperties(headersMap);
-    // }
+    // If headers is not null and has data we pass them to the HttpDataSourceFactory
+    if (headers != null && headers.length() > 0) {
+      // We map the headers(JSObject) to a Map<String, String>
+      Map<String, String> headersMap = new HashMap<String, String>();
+      for (int i = 0; i < headers.names().length(); i++) {
+        try {
+          headersMap.put(headers.names().getString(i), headers.get(headers.names().getString(i)).toString());
+        } catch (JSONException e) {
+          e.printStackTrace();
+        }
+      }
+      httpDataSourceFactory.setDefaultRequestProperties(headersMap);
+    }
 
     DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(context, httpDataSourceFactory);
 
