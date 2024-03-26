@@ -562,17 +562,39 @@ public class FullscreenExoPlayerFragment extends Fragment {
   }
 
   public void playerExit() {
+    if (player != null) {    
     Map<String, Object> info = new HashMap<String, Object>() {
       {
         put("dismiss", "1");
         put("currentTime", getCurrentTime());
       }
     };
-    if (player != null) {
+
       player.seekTo(0);
       player.setVolume(curVolume);
+      releasePlayer();
+    // We control if the user lock the screen when the player is in pip mode
+    try {
+      NotificationCenter.defaultCenter().postNotification("playerFullscreenDismiss", info);
+    } catch (Exception e) {
+      Log.e(TAG, "Error in posting notification");
+    }      
+    } else {
+      Map<String, Object> info = new HashMap<String, Object>() {
+        {
+          put("dismiss", "1");
+          put("currentTime", "0");
+        }
+      };
+      try {
+        NotificationCenter.defaultCenter().postNotification("playerFullscreenDismiss", info);
+      } catch (Exception e) {
+        Log.e(TAG, "Error in posting notification");
+      }       
     }
-    releasePlayer();
+
+
+    
 /*
     Activity mAct = getActivity();
     int mOrient = mAct.getRequestedOrientation();
@@ -580,12 +602,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       mAct.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 */
-    // We control if the user lock the screen when the player is in pip mode
-    try {
-      NotificationCenter.defaultCenter().postNotification("playerFullscreenDismiss", info);
-    } catch (Exception e) {
-      Log.e(TAG, "Error in posting notification");
-    }
+
   }
 
   /**
