@@ -35,7 +35,7 @@
     android:layout_height="match_parent"
     android:adjustViewBounds="true"
     android:foreground="@color/exo_black_opacity_60"
-    android:scaleType="centerCrop"
+    android:scaleType="centerInside"
     android:visibility="gone"
     app:layout_constraintBottom_toBottomOf="parent"
     app:layout_constraintEnd_toEndOf="parent"
