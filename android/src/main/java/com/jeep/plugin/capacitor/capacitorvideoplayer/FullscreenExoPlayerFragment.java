@@ -155,7 +155,6 @@ public class FullscreenExoPlayerFragment extends Fragment {
   private TextView exo_duration;
   private TextView exo_label_separation;
   private TextView live_text;
-  private Context context;
   private boolean isMuted = false;
   private float curVolume = (float) 0.5;
   private String stForeColor = "";
@@ -196,6 +195,13 @@ public class FullscreenExoPlayerFragment extends Fragment {
   private MediaRouteSelector mSelector;
   private CastStateListener castStateListener = null;
   private Boolean playerReady = false;
+  private Context mContext;
+
+  @Override
+  public void onAttach(Context context) {
+    super.onAttach(context);
+    mContext = context;
+  }
 
   /**
    * Create Fragment View
@@ -205,8 +211,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
    * @return View
    */
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-    context = container.getContext();
-    packageManager = context.getPackageManager();
+    packageManager = mContext.getPackageManager();
     view = inflater.inflate(R.layout.fragment_fs_exoplayer, container, false);
     constLayout = view.findViewById(R.id.fsExoPlayer);
     linearLayout = view.findViewById(R.id.linearLayout);
@@ -291,7 +296,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
           switch (state) {
             case ExoPlayer.STATE_IDLE:
               stateString = "ExoPlayer.STATE_IDLE      -";
-              Toast.makeText(context, "Video Url not found", Toast.LENGTH_SHORT).show();
+              Toast.makeText(mContext, "Video Url not found", Toast.LENGTH_SHORT).show();
               playerExit();
               break;
             case ExoPlayer.STATE_BUFFERING:
@@ -371,7 +376,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       };
 
     if (isTV) {
-      Toast.makeText(context, "Device is a TV ", Toast.LENGTH_SHORT).show();
+      Toast.makeText(mContext, "Device is a TV ", Toast.LENGTH_SHORT).show();
     }
 
     if (!isInternal) {
@@ -473,7 +478,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
         );
     } else {
       Log.d(TAG, "Video path wrong or type not supported");
-      Toast.makeText(context, "Video path wrong or type not supported", Toast.LENGTH_SHORT).show();
+      Toast.makeText(mContext, "Video path wrong or type not supported", Toast.LENGTH_SHORT).show();
     }
     return view;
   }
@@ -562,7 +567,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
   }
 
   public void playerExit() {
-    if (player != null) {    
+    if (player != null) {
     Map<String, Object> info = new HashMap<String, Object>() {
       {
         put("dismiss", "1");
@@ -578,7 +583,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       NotificationCenter.defaultCenter().postNotification("playerFullscreenDismiss", info);
     } catch (Exception e) {
       Log.e(TAG, "Error in posting notification");
-    }      
+    }
     } else {
       Map<String, Object> info = new HashMap<String, Object>() {
         {
@@ -590,11 +595,11 @@ public class FullscreenExoPlayerFragment extends Fragment {
         NotificationCenter.defaultCenter().postNotification("playerFullscreenDismiss", info);
       } catch (Exception e) {
         Log.e(TAG, "Error in posting notification");
-      }       
+      }
     }
 
 
-    
+
 /*
     Activity mAct = getActivity();
     int mOrient = mAct.getRequestedOrientation();
@@ -680,7 +685,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
   public void onStop() {
     super.onStop();
     boolean isAppBackground = false;
-    if (bkModeEnabled) isAppBackground = isApplicationSentToBackground(context);
+    if (bkModeEnabled) isAppBackground = isApplicationSentToBackground(mContext);
     if (isInPictureInPictureMode) {
       linearLayout.setVisibility(View.VISIBLE);
       playerExit();
@@ -706,7 +711,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
     super.onPause();
     if (chromecast) castContext.removeCastStateListener(castStateListener);
     boolean isAppBackground = false;
-    if (bkModeEnabled) isAppBackground = isApplicationSentToBackground(context);
+    if (bkModeEnabled) isAppBackground = isApplicationSentToBackground(mContext);
 
     if (!isInPictureInPictureMode) {
       if (Util.SDK_INT < 24) {
@@ -810,12 +815,12 @@ public class FullscreenExoPlayerFragment extends Fragment {
    */
   private void initializePlayer() {
     if (player == null) {
-      DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter.Builder(context).build();
+      DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter.Builder(mContext).build();
       ExoTrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory();
-      trackSelector = new DefaultTrackSelector(context, videoTrackSelectionFactory);
+      trackSelector = new DefaultTrackSelector(mContext, videoTrackSelectionFactory);
       LoadControl loadControl = new DefaultLoadControl();
       player =
-        new ExoPlayer.Builder(context)
+        new ExoPlayer.Builder(mContext)
           .setSeekBackIncrementMs(10000)
           .setSeekForwardIncrementMs(10000)
           .setTrackSelector(trackSelector)
@@ -857,7 +862,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       setSubtitle(false);
     }
     //Use Media Session Connector from the EXT library to enable MediaSession Controls in PIP.
-    mediaSession = new MediaSessionCompat(context, "capacitorvideoplayer");
+    mediaSession = new MediaSessionCompat(mContext, "capacitorvideoplayer");
     mediaSessionConnector = new MediaSessionConnector(mediaSession);
     mediaSessionConnector.setPlayer(player);
     mediaSession.setActive(true);
@@ -895,7 +900,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
    */
   private MediaSource buildAssetMediaSource(Uri uri) {
     MediaSource mediaSource = null;
-    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(context, "jeep-exoplayer-plugin");
+    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(mContext, "jeep-exoplayer-plugin");
     mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(uri));
     // Get the subtitles if any
     if (sturi != null) {
@@ -908,7 +913,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
    * Build the Internal MediaSource
    */
   private MediaSource buildInternalMediaSource(Uri uri) {
-    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(context, "jeep-exoplayer-plugin");
+    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(mContext, "jeep-exoplayer-plugin");
     return new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(uri));
   }
 
@@ -920,7 +925,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
     MediaSource mediaSource = null;
 
     // DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory();
-    OkHttpDataSource.Factory httpDataSourceFactory = new OkHttpDataSource.Factory(new OkHttpClient());    
+    OkHttpDataSource.Factory httpDataSourceFactory = new OkHttpDataSource.Factory(new OkHttpClient());
     httpDataSourceFactory.setUserAgent("jeep-exoplayer-plugin");
     // httpDataSourceFactory.setConnectTimeoutMs(DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS);
     // httpDataSourceFactory.setReadTimeoutMs(1800000);
@@ -940,7 +945,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       httpDataSourceFactory.setDefaultRequestProperties(headersMap);
     }
 
-    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(context, httpDataSourceFactory);
+    DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(mContext, httpDataSourceFactory);
 
     if (
       vType.equals("mp4") ||
@@ -1283,7 +1288,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
    */
   private void initializeCastService() {
     Executor executor = Executors.newSingleThreadExecutor();
-    Task<CastContext> task = CastContext.getSharedInstance(context, executor);
+    Task<CastContext> task = CastContext.getSharedInstance(mContext, executor);
 
     task.addOnCompleteListener(new OnCompleteListener<CastContext>() {
       @Override
@@ -1291,7 +1296,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
         if (task.isSuccessful()) {
           castContext = task.getResult();
           castPlayer = new CastPlayer(castContext);
-          mRouter = MediaRouter.getInstance(context);
+          mRouter = MediaRouter.getInstance(mContext);
           mSelector =
                   new MediaRouteSelector.Builder()
                           .addControlCategories(Arrays.asList(MediaControlIntent.CATEGORY_LIVE_AUDIO, MediaControlIntent.CATEGORY_LIVE_VIDEO))
@@ -1312,7 +1317,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
                       }
                     }
                   };
-          CastButtonFactory.setUpMediaRouteButton(context, mediaRouteButton);
+          CastButtonFactory.setUpMediaRouteButton(mContext, mediaRouteButton);
 
           MediaMetadata movieMetadata;
           if (artwork != "") {
