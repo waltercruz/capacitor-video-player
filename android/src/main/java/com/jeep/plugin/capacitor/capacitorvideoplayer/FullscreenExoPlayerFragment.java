@@ -250,13 +250,13 @@ public class FullscreenExoPlayerFragment extends Fragment {
       initializeCastService();
     }
 
-    if (title != "") {
+    if (!title.equals("")) {
       header_tv.setText(title);
     }
-    if (smallTitle != "") {
+    if (!smallTitle.equals("")) {
       header_below.setText(smallTitle);
     }
-    if (accentColor != "") {
+    if (!accentColor.equals("")) {
       Pbar.getIndeterminateDrawable().setColorFilter(Color.parseColor(accentColor), android.graphics.PorterDuff.Mode.MULTIPLY);
       exo_progress.setPlayedColor(Color.parseColor(accentColor));
       exo_progress.setScrubberColor(Color.parseColor(accentColor));
