@@ -53,8 +53,7 @@ public class CapacitorVideoPlayerPlugin extends Plugin {
 
     private Context context;
     private String videoPath;
-    private String subTitlePath;
-    private Boolean isTV;
+  private Boolean isTV;
     private String fsPlayerId;
     private String mode;
     private Boolean exitOnEnd = true;
@@ -100,8 +99,8 @@ public class CapacitorVideoPlayerPlugin extends Plugin {
       call.reject(PERMISSION_DENIED_ERROR);
       return;
     }
-    switch (call.getMethodName()) {
-      case "initPlayer" -> _initPlayer(call);
+    if (call.getMethodName().equals("initPlayer")) {
+      _initPlayer(call);
     }
   }
 
@@ -912,6 +911,7 @@ public class CapacitorVideoPlayerPlugin extends Plugin {
           // get the videoPath
           videoPath = filesUtils.getFilePath(url);
           // get the subTitlePath if any
+          String subTitlePath;
           if (subtitle != null && subtitle.length() > 0) {
             subTitlePath = filesUtils.getFilePath(subtitle);
           } else {
