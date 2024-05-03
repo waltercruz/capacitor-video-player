@@ -415,21 +415,11 @@ public class FullscreenExoPlayerFragment extends Fragment {
                         backPressed();
                       } else if (isTV) {
                         switch (keyCode) {
-                          case KeyEvent.KEYCODE_DPAD_RIGHT:
-                            fastForward(videoPosition, 1);
-                            break;
-                          case KeyEvent.KEYCODE_DPAD_LEFT:
-                            rewind(videoPosition, 1);
-                            break;
-                          case KeyEvent.KEYCODE_DPAD_CENTER:
-                            play_pause();
-                            break;
-                          case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD:
-                            fastForward(videoPosition, 2);
-                            break;
-                          case KeyEvent.KEYCODE_MEDIA_REWIND:
-                            rewind(videoPosition, 2);
-                            break;
+                          case KeyEvent.KEYCODE_DPAD_RIGHT -> fastForward(videoPosition, 1);
+                          case KeyEvent.KEYCODE_DPAD_LEFT -> rewind(videoPosition, 1);
+                          case KeyEvent.KEYCODE_DPAD_CENTER -> play_pause();
+                          case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> fastForward(videoPosition, 2);
+                          case KeyEvent.KEYCODE_MEDIA_REWIND -> rewind(videoPosition, 2);
                         }
                       }
                       return true;
@@ -1031,6 +1021,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       mimeType = MimeTypes.APPLICATION_TTML;
     }
     return mimeType;
+
   }
 
   /**

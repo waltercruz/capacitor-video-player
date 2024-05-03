@@ -11,6 +11,7 @@ import com.jeep.plugin.capacitor.capacitorvideoplayer.R;
 import com.squareup.picasso.Picasso;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class VideoRecyclerViewHolder extends RecyclerView.ViewHolder {
 
@@ -34,7 +35,7 @@ public class VideoRecyclerViewHolder extends RecyclerView.ViewHolder {
         tv_duration.setText(modelVideo.getDuration());
 
         parentFragment
-            .getActivity()
+            .requireActivity()
             .runOnUiThread(
                 new Runnable() {
                     @Override

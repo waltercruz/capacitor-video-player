@@ -44,7 +44,8 @@ public class PickerVideoFragment extends Fragment {
     @SuppressWarnings("serial")
     @RequiresApi(api = Build.VERSION_CODES.M)
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        context = container.getContext();
+      assert container != null;
+      context = container.getContext();
         // Inflate the layout for this fragment
         view = inflater.inflate(R.layout.fragment_picker_video, container, false);
         loadVideos();
