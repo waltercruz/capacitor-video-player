@@ -34,6 +34,8 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -74,10 +76,10 @@ import com.google.android.exoplayer2.ui.CaptionStyleCompat;
 import com.google.android.exoplayer2.ui.DefaultTimeBar;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.StyledPlayerView;
+import com.google.android.exoplayer2.ui.TrackSelectionView;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.gms.cast.framework.CastButtonFactory;
@@ -96,6 +98,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import org.json.JSONException;
@@ -127,15 +130,13 @@ public class FullscreenExoPlayerFragment extends Fragment {
   private static final String TAG = FullscreenExoPlayerFragment.class.getName();
   public static final long UNKNOWN_TIME = -1L;
   private final List<String> supportedFormat = Arrays.asList(
-    new String[] { "mp4", "webm", "ogv", "3gp", "flv", "dash", "mpd", "m3u8", "ism", "ytube", "" }
-  );
+    "mp4", "webm", "ogv", "3gp", "flv", "dash", "mpd", "m3u8", "ism", "ytube", "");
   private Player.Listener listener;
   private StyledPlayerView styledPlayerView;
   private String vType = null;
   private static ExoPlayer player;
   private boolean playWhenReady = true;
   private boolean firstReadyToPlay = true;
-  private boolean isEnded = false;
   private int currentWindow = 0;
   private long playbackPosition = 0;
   private Uri uri = null;
@@ -144,12 +145,8 @@ public class FullscreenExoPlayerFragment extends Fragment {
   private View view;
   private ImageButton closeBtn;
   private ImageButton pipBtn;
-  private ImageButton resizeBtn;
-  private ConstraintLayout constLayout;
   private LinearLayout linearLayout;
-  private TextView header_tv;
-  private TextView header_below;
-  private static ImageView cast_image;
+  private ImageView cast_image;
   private DefaultTimeBar exo_progress;
   private TextView exo_position;
   private TextView exo_duration;
@@ -161,7 +158,6 @@ public class FullscreenExoPlayerFragment extends Fragment {
   private String stBackColor = "";
   private Integer stFontSize = 16;
   private boolean isInPictureInPictureMode = false;
-  private TrackSelector trackSelector;
   // Current playback position (in milliseconds).
   private int mCurrentPosition;
   private int mDuration;
@@ -171,12 +167,11 @@ public class FullscreenExoPlayerFragment extends Fragment {
   // Tag for the instance state bundle.
   private static final String PLAYBACK_TIME = "play_time";
 
-  private PictureInPictureParams.Builder pictureInPictureParams;
   private MediaSessionCompat mediaSession;
   private MediaSessionConnector mediaSessionConnector;
   private PlayerControlView.VisibilityListener visibilityListener;
   private PackageManager packageManager;
-  private Boolean isPIPModeeEnabled = true;
+  private Boolean isPIPModeEnabled = true;
   final Handler handler = new Handler();
   final Runnable mRunnable = new Runnable() {
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -191,34 +186,36 @@ public class FullscreenExoPlayerFragment extends Fragment {
   private CastPlayer castPlayer;
   private MediaItem mediaItem;
   private MediaRouter mRouter;
-  private MediaRouter.Callback mCallback = new EmptyCallback();
+  private final MediaRouter.Callback mCallback = new EmptyCallback();
   private MediaRouteSelector mSelector;
   private CastStateListener castStateListener = null;
   private Boolean playerReady = false;
   private Context mContext;
 
   @Override
-  public void onAttach(Context context) {
+  public void onAttach(@NonNull Context context) {
     super.onAttach(context);
     mContext = context;
   }
 
   /**
    * Create Fragment View
-   * @param inflater
-   * @param container
-   * @param savedInstanceState
+   * @param inflater inflater
+   * @param container container
+   * @param savedInstanceState savedInstanceState
    * @return View
    */
+  @SuppressLint("SourceLockedOrientationActivity")
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
     packageManager = mContext.getPackageManager();
     view = inflater.inflate(R.layout.fragment_fs_exoplayer, container, false);
-    constLayout = view.findViewById(R.id.fsExoPlayer);
+    ConstraintLayout constLayout = view.findViewById(R.id.fsExoPlayer);
     linearLayout = view.findViewById(R.id.linearLayout);
     styledPlayerView = view.findViewById(R.id.videoViewId);
-    header_tv = view.findViewById(R.id.header_tv);
-    header_below = view.findViewById(R.id.header_below);
+    TextView header_tv = view.findViewById(R.id.header_tv);
+    TextView header_below = view.findViewById(R.id.header_below);
     Pbar = view.findViewById(R.id.indeterminateBar);
+    View exo_settings = view.findViewById(R.id.exo_settings);
     exo_progress = view.findViewById(R.id.exo_progress);
     exo_progress.setVisibility(View.GONE);
     exo_position = view.findViewById(R.id.exo_position);
@@ -228,7 +225,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
     exo_label_separation = view.findViewById(R.id.exo_label_separation);
     exo_label_separation.setVisibility(View.GONE);
     live_text = view.findViewById(R.id.live_text);
-    resizeBtn = view.findViewById(R.id.exo_resize);
+    ImageButton resizeBtn = view.findViewById(R.id.exo_resize);
     cast_image = view.findViewById(R.id.cast_image);
     mediaRouteButton = view.findViewById(R.id.media_route_button);
     styledPlayerView.setShowPreviousButton(false);
@@ -236,18 +233,14 @@ public class FullscreenExoPlayerFragment extends Fragment {
     styledPlayerView.setShowFastForwardButton(false);
     styledPlayerView.setShowRewindButton(false);
 
-    Activity mAct = getActivity();
+    Activity mAct = requireActivity();
     if (displayMode.equals("landscape")) {
       mAct.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
     if (displayMode.equals("portrait")) {
       mAct.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
-    if (!showControls) {
-      styledPlayerView.setUseController(false);
-    } else {
-      styledPlayerView.setUseController(true);
-    }
+    styledPlayerView.setUseController(showControls);
 
     if (!chromecast) {
       mediaRouteButton.setVisibility(View.GONE);
@@ -307,11 +300,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
               stateString = "ExoPlayer.STATE_READY     -";
               Pbar.setVisibility(View.GONE);
               playerReady = true;
-              if (!showControls) {
-                styledPlayerView.setUseController(false);
-              } else {
-                styledPlayerView.setUseController(true);
-              }
+              styledPlayerView.setUseController(showControls);
               linearLayout.setVisibility(View.INVISIBLE);
               Log.v(TAG, "**** in ExoPlayer.STATE_READY firstReadyToPlay " + firstReadyToPlay);
 
@@ -322,6 +311,9 @@ public class FullscreenExoPlayerFragment extends Fragment {
                 Log.v(TAG, "**** in ExoPlayer.STATE_READY firstReadyToPlay player.isPlaying" + player.isPlaying());
                 player.seekTo(currentWindow, playbackPosition);
 
+                TrackSelectionView trackSelectionView = Objects.requireNonNull(styledPlayerView.getOverlayFrameLayout()).findViewById(R.id.exo_track_selection_view);
+//                trackSelectionView.setTrackNameProvider(f -> f.height != Format.NO_VALUE  ? (Math.round(f.frameRate) + " FPS, " + (f.bitrate == Format.NO_VALUE ? "" : (getResources().getString(R.string.exo_track_bitrate, f.bitrate / 1000000f)) ) + ", " + f.height + " P"): trackNameProvider.getTrackName(f));
+                Log.v(TAG, "**** trackSelectionView " + trackSelectionView);
                 // We show progress bar, position and duration only when the video is not live
                 if (!player.isCurrentMediaItemLive()) {
                   exo_progress.setVisibility(View.VISIBLE);
@@ -332,6 +324,8 @@ public class FullscreenExoPlayerFragment extends Fragment {
                   styledPlayerView.setShowRewindButton(true);
                 } else {
                   live_text.setVisibility(View.VISIBLE);
+                  exo_settings.setVisibility(View.INVISIBLE);
+
                 }
               } else {
                 Log.v(TAG, "**** in ExoPlayer.STATE_READY isPlaying " + player.isPlaying());
@@ -385,7 +379,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
       stForeColor = subTitleOptions.has("foregroundColor") ? subTitleOptions.getString("foregroundColor") : "rgba(255,255,255,1)";
       stBackColor = subTitleOptions.has("backgroundColor") ? subTitleOptions.getString("backgroundColor") : "rgba(0,0,0,1)";
-      stFontSize = subTitleOptions.has("fontSize") ? subTitleOptions.getInteger("fontSize") : 16;
+      stFontSize = subTitleOptions.has("fontSize") ? subTitleOptions.getInteger("fontSize") : Integer.valueOf(16);
       // get video type
       vType = getVideoType(uri);
       Log.v(TAG, "display url: " + uri);
@@ -395,8 +389,8 @@ public class FullscreenExoPlayerFragment extends Fragment {
     }
     if (uri != null || isInternal) {
       // go fullscreen
-      getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-      getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+      requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+      requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
       if (savedInstanceState != null) {
         mCurrentPosition = savedInstanceState.getInt(PLAYBACK_TIME);
       }
@@ -490,15 +484,14 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
     protected Bitmap doInBackground(Void... params) {
       final String image = artwork;
-      if (image != "") {
+      if (!Objects.equals(image, "")) {
         try {
           URL url = new URL(image);
           HttpURLConnection connection = (HttpURLConnection) url.openConnection();
           connection.setDoInput(true);
           connection.connect();
           InputStream input = connection.getInputStream();
-          Bitmap myBitmap = BitmapFactory.decodeStream(input);
-          return myBitmap;
+          return BitmapFactory.decodeStream(input);
         } catch (IOException e) {
           e.printStackTrace();
           return null;
@@ -540,7 +533,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       !isInPictureInPictureMode &&
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
         packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
-        isPIPModeeEnabled &&
+        isPIPModeEnabled &&
         pipEnabled &&
         playerReady // <- playerReady: this prevents a crash if the user presses back before the player is ready (when enters in pip mode and tries to get the aspect ratio)
     ) {
@@ -623,17 +616,17 @@ public class FullscreenExoPlayerFragment extends Fragment {
       if (
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
       ) {
-        pictureInPictureParams = new PictureInPictureParams.Builder();
+        PictureInPictureParams.Builder pictureInPictureParams = new PictureInPictureParams.Builder();
         // setup height and width of the PIP window
-        Rational aspectRatio = new Rational(player.getVideoFormat().width, player.getVideoFormat().height);
+        Rational aspectRatio = new Rational(Objects.requireNonNull(player.getVideoFormat()).width, player.getVideoFormat().height);
         pictureInPictureParams.setAspectRatio(aspectRatio).build();
-        getActivity().enterPictureInPictureMode(pictureInPictureParams.build());
+        requireActivity().enterPictureInPictureMode(pictureInPictureParams.build());
         Log.v(TAG, "PIP break 2");
       } else {
-        getActivity().enterPictureInPictureMode();
+        requireActivity().enterPictureInPictureMode();
         Log.v(TAG, "PIP break 3");
       }
-      isInPictureInPictureMode = getActivity().isInPictureInPictureMode();
+      isInPictureInPictureMode = requireActivity().isInPictureInPictureMode();
       if (sturi != null) {
         setSubtitle(true);
       }
@@ -648,7 +641,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
   @RequiresApi(api = Build.VERSION_CODES.N)
   private void checkPIPPermission() {
-    isPIPModeeEnabled = isInPictureInPictureMode;
+    isPIPModeEnabled = isInPictureInPictureMode;
     if (!isInPictureInPictureMode) {
       backPressed();
     }
@@ -673,7 +666,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
           play();
         }
       } else {
-        getActivity().finishAndRemoveTask();
+        requireActivity().finishAndRemoveTask();
       }
     }
   }
@@ -689,7 +682,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
     if (isInPictureInPictureMode) {
       linearLayout.setVisibility(View.VISIBLE);
       playerExit();
-      getActivity().finishAndRemoveTask();
+      requireActivity().finishAndRemoveTask();
     }
   }
 
@@ -741,7 +734,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
     if (player != null) {
       playWhenReady = player.getPlayWhenReady();
       playbackPosition = player.getCurrentPosition();
-      currentWindow = player.getCurrentWindowIndex();
+      currentWindow = player.getCurrentMediaItemIndex();
       mediaSessionConnector.setPlayer(null);
       mediaSession.setActive(false);
       player.setRepeatMode(player.REPEAT_MODE_OFF);
@@ -774,11 +767,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
       if (
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
       ) {
-        if (!showControls) {
-          styledPlayerView.setUseController(false);
-        } else {
-          styledPlayerView.setUseController(true);
-        }
+        styledPlayerView.setUseController(showControls);
       }
       if (sturi != null) {
         setSubtitle(false);
@@ -802,12 +791,12 @@ public class FullscreenExoPlayerFragment extends Fragment {
   }
 
   /**
-   * Leave the fullsreen mode and reset the status bar to visible
+   * Leave the fullscreen mode and reset the status bar to visible
    */
   private void showSystemUI() {
-    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-    getActivity().getWindow().getDecorView().setSystemUiVisibility(View.VISIBLE);
+    requireActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    requireActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    requireActivity().getWindow().getDecorView().setSystemUiVisibility(View.VISIBLE);
   }
 
   /**
@@ -817,7 +806,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
     if (player == null) {
       DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter.Builder(mContext).build();
       ExoTrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory();
-      trackSelector = new DefaultTrackSelector(mContext, videoTrackSelectionFactory);
+      TrackSelector trackSelector = new DefaultTrackSelector(mContext, videoTrackSelectionFactory);
       LoadControl loadControl = new DefaultLoadControl();
       player =
         new ExoPlayer.Builder(mContext)
@@ -833,7 +822,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
     MediaSource mediaSource;
     if (!isInternal) {
-      if (videoPath.substring(0, 21).equals("file:///android_asset") || videoPath.substring(0, 15).equals("content://media")) {
+      if (videoPath.startsWith("file:///android_asset") || videoPath.startsWith("content://media")) {
         mediaSource = buildAssetMediaSource(uri);
       } else {
         mediaSource = buildHttpMediaSource();
@@ -876,18 +865,18 @@ public class FullscreenExoPlayerFragment extends Fragment {
     if (!transparent) {
       foreground = Color.WHITE;
       background = Color.BLACK;
-      if (stForeColor.length() > 4 && stForeColor.substring(0, 4).equals("rgba")) {
+      if (stForeColor.length() > 4 && stForeColor.startsWith("rgba")) {
         foreground = getColorFromRGBA(stForeColor);
       }
-      if (stBackColor.length() > 4 && stBackColor.substring(0, 4).equals("rgba")) {
+      if (stBackColor.length() > 4 && stBackColor.startsWith("rgba")) {
         background = getColorFromRGBA(stBackColor);
       }
     } else {
       foreground = Color.TRANSPARENT;
       background = Color.TRANSPARENT;
     }
-    styledPlayerView
-      .getSubtitleView()
+    Objects.requireNonNull(styledPlayerView
+        .getSubtitleView())
       .setStyle(
         new CaptionStyleCompat(foreground, background, Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_NONE, Color.WHITE, null)
       );
@@ -935,9 +924,9 @@ public class FullscreenExoPlayerFragment extends Fragment {
     if (headers != null && headers.length() > 0) {
       // We map the headers(JSObject) to a Map<String, String>
       Map<String, String> headersMap = new HashMap<String, String>();
-      for (int i = 0; i < headers.names().length(); i++) {
+      for (int i = 0; i < Objects.requireNonNull(headers.names()).length(); i++) {
         try {
-          headersMap.put(headers.names().getString(i), headers.get(headers.names().getString(i)).toString());
+          headersMap.put(Objects.requireNonNull(headers.names()).getString(i), headers.get(headers.names().getString(i)).toString());
         } catch (JSONException e) {
           e.printStackTrace();
         }
@@ -953,7 +942,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
         vType.equals("ogv") ||
         vType.equals("3gp") ||
         vType.equals("flv") ||
-        vType.equals("")
+        vType.isEmpty()
     ) {
       mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(uri));
     } else if (vType.equals("dash") || vType.equals("mpd")) {
@@ -976,7 +965,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
    * Save instance state
    */
   @Override
-  public void onSaveInstanceState(Bundle outState) {
+  public void onSaveInstanceState(@NonNull Bundle outState) {
     super.onSaveInstanceState(outState);
 
     // Save the current playback position (in milliseconds) to the
@@ -1029,7 +1018,8 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
   private String getMimeType(Uri sturi) {
     String lastSegment = sturi.getLastPathSegment();
-    String extension = lastSegment.substring(lastSegment.lastIndexOf(".") + 1);
+      assert lastSegment != null;
+      String extension = lastSegment.substring(lastSegment.lastIndexOf(".") + 1);
     String mimeType = "";
     if (extension.equals("vtt")) {
       mimeType = MimeTypes.TEXT_VTT;
@@ -1207,14 +1197,14 @@ public class FullscreenExoPlayerFragment extends Fragment {
     );
     Drawable drawable = a.getDrawable(androidx.mediarouter.R.styleable.MediaRouteButton_externalRouteEnabledDrawable);
     a.recycle();
-    DrawableCompat.setTint(drawable, getContext().getResources().getColor(R.color.white));
+    DrawableCompat.setTint(Objects.requireNonNull(drawable), requireContext().getResources().getColor(R.color.white));
     drawable.setState(button.getDrawableState());
     button.setRemoteIndicatorDrawable(drawable);
   }
 
   /**
    * Get video Type from Uri
-   * @param uri
+   * @param uri uri
    * @return video type
    */
   private String getVideoType(Uri uri) {
@@ -1254,7 +1244,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
     styledPlayerView = null;
     playWhenReady = true;
     firstReadyToPlay = true;
-    isEnded = false;
+    boolean isEnded = false;
     currentWindow = 0;
     playbackPosition = 0;
     uri = null;
@@ -1265,7 +1255,6 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
   /**
    * Check if the application has been sent to the background
-   * @param context
    * @return boolean
    */
   public boolean isApplicationSentToBackground(final Context context) {
@@ -1284,7 +1273,6 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
   /**
    * Function to initialize the cast service and everything related to it
-   * @return void
    */
   private void initializeCastService() {
     Executor executor = Executors.newSingleThreadExecutor();
@@ -1292,7 +1280,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
     task.addOnCompleteListener(new OnCompleteListener<CastContext>() {
       @Override
-      public void onComplete(Task<CastContext> task) {
+      public void onComplete(@NonNull Task<CastContext> task) {
         if (task.isSuccessful()) {
           castContext = task.getResult();
           castPlayer = new CastPlayer(castContext);
@@ -1320,7 +1308,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
           CastButtonFactory.setUpMediaRouteButton(mContext, mediaRouteButton);
 
           MediaMetadata movieMetadata;
-          if (artwork != "") {
+          if (!Objects.equals(artwork, "")) {
             movieMetadata = new MediaMetadata.Builder()
                     .setTitle(title)
                     .setSubtitle(smallTitle)
@@ -1366,7 +1354,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
                     @Override
                     public void onCastSessionUnavailable() {
                       isCastSession = false;
-                      final Long videoPosition = castPlayer.getCurrentPosition();
+                      final long videoPosition = castPlayer.getCurrentPosition();
                       if (pipEnabled) {
                         pipBtn.setVisibility(View.VISIBLE);
                       }
@@ -1391,16 +1379,12 @@ public class FullscreenExoPlayerFragment extends Fragment {
                           put("currentTime", String.valueOf(player.getCurrentPosition() / 1000));
                         }
                       };
-                      switch (state) {
-                        case CastPlayer.STATE_READY:
-                          if (castPlayer.isPlaying()) {
-                            NotificationCenter.defaultCenter().postNotification("playerItemPlay", info);
-                          } else {
-                            NotificationCenter.defaultCenter().postNotification("playerItemPause", info);
-                          }
-                          break;
-                        default:
-                          break;
+                      if (state == CastPlayer.STATE_READY) {
+                        if (castPlayer.isPlaying()) {
+                          NotificationCenter.defaultCenter().postNotification("playerItemPlay", info);
+                        } else {
+                          NotificationCenter.defaultCenter().postNotification("playerItemPause", info);
+                        }
                       }
                     }
                   }
@@ -1411,11 +1395,12 @@ public class FullscreenExoPlayerFragment extends Fragment {
 
         } else {
           Exception e = task.getException();
+          assert e != null;
           e.printStackTrace();
         }
       }
     });
   }
 
-  private final class EmptyCallback extends MediaRouter.Callback {}
+  private static final class EmptyCallback extends MediaRouter.Callback {}
 }
