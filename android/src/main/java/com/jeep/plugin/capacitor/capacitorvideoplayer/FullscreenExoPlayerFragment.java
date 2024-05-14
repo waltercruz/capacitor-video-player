@@ -45,6 +45,7 @@ import androidx.mediarouter.app.MediaRouteButton;
 import androidx.mediarouter.media.MediaControlIntent;
 import androidx.mediarouter.media.MediaRouteSelector;
 import androidx.mediarouter.media.MediaRouter;
+
 import com.getcapacitor.JSObject;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultLoadControl;
@@ -59,7 +60,6 @@ import com.google.android.exoplayer2.ext.cast.CastPlayer;
 import com.google.android.exoplayer2.ext.cast.SessionAvailabilityListener;
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource;
-import okhttp3.OkHttpClient;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.MergingMediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
@@ -89,6 +89,9 @@ import com.google.android.gms.cast.framework.CastStateListener;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.jeep.plugin.capacitor.capacitorvideoplayer.Notifications.NotificationCenter;
+
+import org.json.JSONException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -101,7 +104,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import org.json.JSONException;
+
+import okhttp3.OkHttpClient;
 
 public class FullscreenExoPlayerFragment extends Fragment {
 
@@ -115,16 +119,16 @@ public class FullscreenExoPlayerFragment extends Fragment {
   public Boolean isTV;
   public Boolean isInternal;
   public Long videoId;
-  public Boolean exitOnEnd;
-  public Boolean loopOnEnd;
-  public Boolean pipEnabled;
-  public Boolean bkModeEnabled;
-  public Boolean showControls;
+  public Boolean exitOnEnd = true;
+  public Boolean loopOnEnd = false;
+  public Boolean pipEnabled = true;
+  public Boolean bkModeEnabled = true;
+  public Boolean showControls = true;
   public String displayMode = "all";
   public String title;
   public String smallTitle;
   public String accentColor;
-  public Boolean chromecast;
+  public Boolean chromecast = true;
   public String artwork;
 
   private static final String TAG = FullscreenExoPlayerFragment.class.getName();
@@ -146,7 +150,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
   private ImageButton closeBtn;
   private ImageButton pipBtn;
   private LinearLayout linearLayout;
-  private ImageView cast_image;
+  private static ImageView cast_image;
   private DefaultTimeBar exo_progress;
   private TextView exo_position;
   private TextView exo_duration;
@@ -248,13 +252,13 @@ public class FullscreenExoPlayerFragment extends Fragment {
       initializeCastService();
     }
 
-    if (!title.equals("")) {
+    if (!title.isEmpty()) {
       header_tv.setText(title);
     }
-    if (!smallTitle.equals("")) {
+    if (!smallTitle.isEmpty()) {
       header_below.setText(smallTitle);
     }
-    if (!accentColor.equals("")) {
+    if (!accentColor.isEmpty()) {
       Pbar.getIndeterminateDrawable().setColorFilter(Color.parseColor(accentColor), android.graphics.PorterDuff.Mode.MULTIPLY);
       exo_progress.setPlayedColor(Color.parseColor(accentColor));
       exo_progress.setScrubberColor(Color.parseColor(accentColor));
@@ -289,8 +293,10 @@ public class FullscreenExoPlayerFragment extends Fragment {
           switch (state) {
             case ExoPlayer.STATE_IDLE:
               stateString = "ExoPlayer.STATE_IDLE      -";
-              Toast.makeText(mContext, "Video Url not found", Toast.LENGTH_SHORT).show();
-              playerExit();
+              Log.v(TAG, stateString);
+
+//              Toast.makeText(mContext, "Video Url not found", Toast.LENGTH_SHORT).show();
+//              playerExit();
               break;
             case ExoPlayer.STATE_BUFFERING:
               stateString = "ExoPlayer.STATE_BUFFERING -";
@@ -808,6 +814,10 @@ public class FullscreenExoPlayerFragment extends Fragment {
       ExoTrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory();
       TrackSelector trackSelector = new DefaultTrackSelector(mContext, videoTrackSelectionFactory);
       LoadControl loadControl = new DefaultLoadControl();
+//      LoadControl loadControl = new DefaultLoadControl
+//        .Builder()
+//        .setBufferDurationsMs(32*1024, 64*1024, 1024, 1024)
+//        .
       player =
         new ExoPlayer.Builder(mContext)
           .setSeekBackIncrementMs(10000)
@@ -914,11 +924,16 @@ public class FullscreenExoPlayerFragment extends Fragment {
     MediaSource mediaSource = null;
 
     // DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory();
-    OkHttpDataSource.Factory httpDataSourceFactory = new OkHttpDataSource.Factory(new OkHttpClient());
+    OkHttpClient client = new OkHttpClient.Builder()
+//      .readTimeout(10, TimeUnit.MINUTES)
+//      .connectTimeout(10,TimeUnit.MINUTES)
+//      .retryOnConnectionFailure(true)
+      .build();
+    OkHttpDataSource.Factory httpDataSourceFactory = new OkHttpDataSource.Factory(client);
     httpDataSourceFactory.setUserAgent("jeep-exoplayer-plugin");
     // httpDataSourceFactory.setConnectTimeoutMs(DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS);
-    // httpDataSourceFactory.setReadTimeoutMs(1800000);
-    // httpDataSourceFactory.setAllowCrossProtocolRedirects(true);
+//     httpDataSourceFactory.setReadTimeoutMs(1800000);
+//     httpDataSourceFactory.setAllowCrossProtocolRedirects(true);
 
     // If headers is not null and has data we pass them to the HttpDataSourceFactory
     if (headers != null && headers.length() > 0) {
@@ -942,7 +957,7 @@ public class FullscreenExoPlayerFragment extends Fragment {
         vType.equals("ogv") ||
         vType.equals("3gp") ||
         vType.equals("flv") ||
-        vType.isEmpty()
+        vType.equals("")
     ) {
       mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(uri));
     } else if (vType.equals("dash") || vType.equals("mpd")) {
